@@ -1,0 +1,11 @@
+{
+  "name": "MyTwitterBot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:tomon9086/MyTwitterBot.git",
+  "author": "tomon9086 <tomo.mouse.9086@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "oauth": "^0.9.15"
+  }
+}
