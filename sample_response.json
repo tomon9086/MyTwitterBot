@@ -340,7 +340,6 @@
     "place": null,
     "contributors": null,
 
-===
 
     "retweeted_status": {
       "created_at": "Mon Apr 03 16:05:05 +0000 2017",
@@ -444,7 +443,6 @@
       "lang": "en"
     },
 
-===
 
     "is_quote_status": false,
     "retweet_count": 111,

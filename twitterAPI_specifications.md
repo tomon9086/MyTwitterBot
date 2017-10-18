@@ -9,7 +9,7 @@
 |Key|Describe|Type|Ex.|
 |:--|:--|:--:|:--|
 |created_at|ツイート時刻|String|'Sun Oct 01 01:16:11 +0000 2017'|
-|id|ユーザーID|Number|915297861584421400|
+|id|ツイートのID|Number|915297861584421400|
 |id\_str|idのtoString|String|'914297861583421440'|
 |text|ツイート内容|String|'かぜぐすり(?) https://t.co/UfTGVbbvVQ'|
 |truncated||Boolean|false|

@@ -6,6 +6,7 @@
   "author": "tomon9086 <tomo.mouse.9086@gmail.com>",
   "license": "MIT",
   "dependencies": {
+    "lowdb": "^1.0.0",
     "oauth": "^0.9.15"
   }
 }

@@ -1,5 +1,11 @@
 const OAuth = require("oauth")
 
+const low = require("lowdb")
+const FileSync = require("lowdb/adapters/FileSync")
+const adapter = new FileSync("timeline.json")
+const db = low(adapter)
+db.defaults({ tweets: [] }).write()
+
 const oauth = new OAuth.OAuth(
 	"https://api.twitter.com/oauth/request_token",
 	"https://api.twitter.com/oauth/access_token",
@@ -26,36 +32,106 @@ const accessTokenSecret = "ANwAEnbcyYaeIDzBGXGrllDML7DCw6xFJswSm1KavN9Nr"
 // 	}
 // )
 
+const tweetForm = {
+	created_at: "Thu Jan 01 00:00:00 +0000 1970",
+	id: 0,
+	text: "",
+	in_reply_to_status_id_str: null,
+	in_reply_to_user_id_str: null
+}
 
-
-oauth.get(
-	"https://api.twitter.com/1.1/statuses/user_timeline.json?user_id=4445069657&count=5",	// url
-	accessToken,	// Access Token
-	accessTokenSecret,	// Access Token Secret
-	function(e, data, res) {
-		if(e) console.error(e)
-		// console.log(require("util").inspect(data))
-	console.log(JSON.parse(data))
-		// JSON.parse(data).forEach((v, i) => {
-		// 	console.log(v.text)
-		// 	// console.log("=*=*=*=*=*=*=")
-		// })
-		// done()
-	}
-)
-
-function post(mes) {
-	oauth.post(
-		"https://api.twitter.com/1.1/statuses/update.json",	// url
-		accessToken,	// Access Token
-		accessTokenSecret,	// Access Token Secret
-		{
-			status: mes
-		},	// post body
-			// post content type
-		function(e, data, res) {
-			if(e) console.error(e)
-			console.log(require("util").inspect(data))
+async function update(tl_count) {
+	const statuses = await getTimeline("4445069657", tl_count)
+	const lastTweet = db.getState().tweets.length ? db.getState().tweets.slice(-1) : tweetForm
+	const newTweets = []
+	statuses.slice().reverse().forEach(async function(v, i) {
+		if(v.id > lastTweet.id) {
+			const tweet = {}
+			tweet.isRetweet = false
+			for(key in tweetForm) {
+				tweet[key] = v[key]
+			}
+			if(v.in_reply_to_status_id_str !== null) {
+				let reply_to_status
+				tweet.reply_to_status = {}
+				if(tweet.in_reply_to_status_id_str !== null) reply_to_status = await getStatusById(tweet.in_reply_to_status_id_str)
+				for(key in tweetForm) {
+					tweet.reply_to_status[key] = reply_to_status[key]
+				}
+			}
+			if(v.retweeted_status !== undefined) tweet.isRetweet = true
+			db.get("tweets").push(tweet).write()
 		}
-	)
+		// newTweets.sort(function(a, b) {
+		// 	return a.id - b.id
+		// })
+	})
+	// console.log(newTweets)
+}
+
+update(200)
+// setInterval(() => {
+// 	update(100)
+// }, 500000)
+
+// getStatusById("920510759058190336").then(function(v) {
+// 	console.log(v)
+// })
+
+function getTimeline(id, count) {
+	if(id === undefined) throw new Error("id is required")
+	if(typeof id !== "string") throw new Error("id must be string")
+	if(count === undefined || typeof count !== "number") count = 0
+	return new Promise(function(resolve, reject) {
+		let response
+		oauth.get(
+			"https://api.twitter.com/1.1/statuses/user_timeline.json?user_id=" + id + "&count=" + count,	// url
+			accessToken,	// Access Token
+			accessTokenSecret,	// Access Token Secret
+			function(e, data, res) {
+				if(e) console.error(e)
+				// console.log(JSON.parse(data))
+				response = JSON.parse(data)
+				resolve(response)
+			}
+		)
+    })
+}
+
+function getStatusById(id) {
+	if(typeof id !== "string") throw new Error("id-type must be string")
+	return new Promise(function(resolve, reject) {
+		let response
+		oauth.get(
+			"https://api.twitter.com/1.1/statuses/show.json?id=" + id,	// url
+			accessToken,	// Access Token
+			accessTokenSecret,	// Access Token Secret
+			function(e, data, res) {
+				// if(e) console.error(e)
+				// console.log(JSON.parse(data))
+				response = JSON.parse(data)
+				resolve(response)
+			}
+		)
+    })
+}
+
+function postStatus(mes) {
+	return new Promise(function(resolve, reject) {
+		let response
+		oauth.post(
+			"https://api.twitter.com/1.1/statuses/update.json",	// url
+			accessToken,	// Access Token
+			accessTokenSecret,	// Access Token Secret
+			{
+				status: mes
+			},	// post body
+			function(e, data, res) {
+				if(e) console.error(e)
+				// console.log(JSON.parse(data))
+				response = JSON.parse(data)
+				resolve(response)
+			}
+		)
+	})
 }
