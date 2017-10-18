@@ -34,16 +34,21 @@ const accessTokenSecret = "ANwAEnbcyYaeIDzBGXGrllDML7DCw6xFJswSm1KavN9Nr"
 
 const tweetForm = {
 	created_at: "Thu Jan 01 00:00:00 +0000 1970",
-	id: 0,
+	id: null,
+	id_str: null,
 	text: "",
 	in_reply_to_status_id_str: null,
 	in_reply_to_user_id_str: null
 }
 
 async function update(tl_count) {
+	const tweets = db.getState().tweets
 	const statuses = await getTimeline("4445069657", tl_count)
-	const lastTweet = db.getState().tweets.length ? db.getState().tweets.slice(-1) : tweetForm
-	const newTweets = []
+	let indexofMaxId = 0
+	tweets.forEach(function(v, i) {
+		if(compare(v.id_str, tweets[indexofMaxId].id_str)) indexofMaxId = i
+	})
+	const lastTweet = tweets[indexofMaxId]
 	statuses.slice().reverse().forEach(async function(v, i) {
 		if(v.id > lastTweet.id) {
 			const tweet = {}
@@ -66,7 +71,7 @@ async function update(tl_count) {
 		// 	return a.id - b.id
 		// })
 	})
-	// console.log(newTweets)
+	// console.log(db.getState().tweets.length)
 }
 
 update(200)
@@ -77,6 +82,11 @@ update(200)
 // getStatusById("920510759058190336").then(function(v) {
 // 	console.log(v)
 // })
+
+function compare(a, b) {
+	let a_larger_than_b = Number(a.slice(0, 9)) - Number(b.slice(0, 9)) === 0 ? a.slice(9, a.length) - b.slice(9, b.length) > 0 ? true : false : Number(a.slice(0, 9)) - Number(b.slice(0, 9)) > 0 ? true : false
+	return a_larger_than_b
+}
 
 function getTimeline(id, count) {
 	if(id === undefined) throw new Error("id is required")
