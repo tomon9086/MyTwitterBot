@@ -75,9 +75,9 @@ async function update(tl_count) {
 }
 
 update(200)
-// setInterval(() => {
-// 	update(100)
-// }, 500000)
+setInterval(() => {
+	update(100)
+}, 500000)
 
 // getStatusById("920510759058190336").then(function(v) {
 // 	console.log(v)
