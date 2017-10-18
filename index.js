@@ -48,7 +48,7 @@ async function update(tl_count) {
 	tweets.forEach(function(v, i) {
 		if(compare(v.id_str, tweets[indexofMaxId].id_str)) indexofMaxId = i
 	})
-	const lastTweet = tweets[indexofMaxId]
+	const lastTweet = tweets.length !== 0 ? tweets[indexofMaxId] : tweetForm
 	statuses.slice().reverse().forEach(async function(v, i) {
 		if(v.id > lastTweet.id) {
 			const tweet = {}
@@ -75,13 +75,10 @@ async function update(tl_count) {
 }
 
 update(200)
-// setInterval(() => {
-// 	update(100)
-// }, 500000)
+setInterval(() => {
+	update(100)
+}, 500000)
 
-// getStatusById("920510759058190336").then(function(v) {
-// 	console.log(v)
-// })
 
 function compare(a, b) {
 	let a_larger_than_b = Number(a.slice(0, 9)) - Number(b.slice(0, 9)) === 0 ? a.slice(9, a.length) - b.slice(9, b.length) > 0 ? true : false : Number(a.slice(0, 9)) - Number(b.slice(0, 9)) > 0 ? true : false
