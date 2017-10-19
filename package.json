@@ -9,5 +9,14 @@
     "kuromoji": "^0.1.1",
     "lowdb": "^1.0.0",
     "oauth": "^0.9.15"
+  },
+  "devDependencies": {
+    "forever": "^0.15.3"
+  },
+  "scripts": {
+    "start": "forever start ./index.js",
+    "stop": "forever stop ./index.js",
+    "flist": "forever list",
+    "rmlog": "yes | rm ~/.forever/*.log"
   }
 }

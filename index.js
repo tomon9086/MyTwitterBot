@@ -82,14 +82,15 @@ async function update(tl_count) {
 }
 
 update(200)
-// setInterval(() => {
-// 	update(100)
-// }, 500000)
+setInterval(() => {
+	update(100)
+}, 500000)
 
 
-function compare(a, b) {
+function compare(a, b, opt) {
 	if(isNaN(Number(a)) || isNaN(Number(a))) return NaN
-	let a_larger_than_b = Number(a.slice(0, 9)) - Number(b.slice(0, 9)) === 0 ? a.slice(9, a.length) - b.slice(9, b.length) > 0 ? true : false : Number(a.slice(0, 9)) - Number(b.slice(0, 9)) > 0 ? true : false
+	if(opt === undefined) opt = 0
+	let a_larger_than_b = Number(a.slice(0, 9)) - Number(b.slice(0, 9)) === 0 ? Number(a.slice(9, a.length)) - Number(b.slice(9, b.length)) + opt > 0 ? true : false : Number(a.slice(0, 9)) - Number(b.slice(0, 9)) + opt > 0 ? true : false
 	return a_larger_than_b
 }
 
@@ -162,7 +163,8 @@ function buildChainDB(data) {
 	const lastAnalyzedID = markov_chain_db.getState().lastAnalyzedID
 	return new Promise(async function(resolve, reject) {
 		await awaitForEach(data, function(v, i) {
-			if(lastAnalyzedID !== null && compare(lastAnalyzedID, v.id_str)) return
+			if(lastAnalyzedID !== null && compare(lastAnalyzedID, v.id_str, 1)) return
+			if(v.isRetweet) return
 			console.log(data.length + "ツイート中 " + (i + 1) + "番目を解析中...")
 			return new Promise(function(resolve, reject) {
 				kuromoji.builder({ dicPath: "./node_modules/kuromoji/dict" }).build(function(err, tokenizer) {
