@@ -72,25 +72,25 @@ async function update(tl_count) {
 			timeline_db.get("tweets").push(tweet).write()
 		}
 	})
-	// console.log("timelineとれたよ")
-	// console.log(await sortTimelineJSON())
-	// console.log("現在 " + timeline_db.getState().tweets.length + "ツイート")
-	// await buildChainDB(timeline_db.getState().tweets)
+	console.log("timelineとれたよ")
+	console.log(await sortTimelineJSON())
+	console.log("現在 " + timeline_db.getState().tweets.length + "ツイート")
+	await buildChainDB(timeline_db.getState().tweets)
 }
 
 async function postGeneratedTweet() {
 	const generatedText = await makeTweet()
-	// await postStatus(generatedText)
-	console.log("resolved: " + generatedText)
+	await postStatus(generatedText)
+	console.log(generatedText)
 }
 
-// update(200)
-// setInterval(() => {
-// 	update(100)
-// }, 500000)
+update(200)
+setInterval(() => {
+	update(100)
+}, 500000)
 
 postGeneratedTweet()
-// setInterval(postGeneratedTweet, 1800000)
+setInterval(postGeneratedTweet, 1800000)
 
 
 function compare(a, b, opt) {
@@ -244,51 +244,53 @@ function makeTweet() {
 		let initialWord = null
 		let isSuit = false
 		initialWord = chains[Math.random() * chains.length | 0]
-		// polymerize(initialWord.surface_form, initialWord)
-		text = await awaitPolymerize(chains, initialWord.surface_form, initialWord)
+		text = await polymerize(chains, initialWord)
 		console.log(text)
 		resolve(text)
 	})
 }
 
-function polymerize(chains, text, word, count) {
+function polymerize(chains, word) {
+	let currWord = word
+	let return_text = word.surface_form
+	let count = 0
 	return new Promise(function(resolve, reject) {
-		if(count === undefined) count = 0
-		if((Math.random() * (count / 2)) > 3) {
-			resolve(text)
-			return
-		}
-		let indexofWord = chains.indexOf(word)
-		if(indexofWord === -1) {
-			chains.forEach(function(v, i) {
-				if(word.next_word_id === v.word_id) {
-					indexofWord = i
-					return
-				}
+		while((Math.random() * (count / 2)) < 3) {
+			let indexofWord = chains.indexOf(currWord)
+			if(indexofWord === -1) {
+				chains.forEach(function(v, i) {
+					if(currWord.next_word_id === v.word_id) {
+						indexofWord = i
+						return
+					}
+				})
+			}
+			// console.log(indexofWord)
+			if(indexofWord === -1) {
+				resolve(return_text)
+				return
+			}
+			const nextWords = chains[indexofWord].next_words
+			const nextWordCounts = nextWords.map(function(v, i) { return v.count })
+			const countSum = nextWordCounts.reduce(function(p, c) {
+				return p + c
 			})
+			const nextWordScore = nextWordCounts.map(function(v, i) { return Math.random() * v / countSum })
+			const maxScore = nextWordScore.reduce((p, c) => { return Math.max(p, c) })
+			const topScoreWords = []
+			nextWordScore.forEach(function(v, i) {
+				if(maxScore === v) topScoreWords.push(nextWords[i])
+			})
+			let pushedWord
+			if(topScoreWords.length === 1) {
+				pushedWord = topScoreWords[0]
+			} else if(topScoreWords.length > 1) {
+				pushedWord = topScoreWords[Math.random() * topScoreWords.length | 0]
+			}
+			return_text += pushedWord.next_surface_form
+			currWord = pushedWord
+			count++
 		}
-		// console.log(indexofWord)
-		if(indexofWord === -1) {
-			resolve(text)
-			return
-		}
-		const nextWords = chains[indexofWord].next_words
-		const nextWordCounts = nextWords.map(function(v, i) { return v.count })
-		const countSum = nextWordCounts.reduce(function(p, c) {
-			return p + c
-		})
-		const nextWordScore = nextWordCounts.map(function(v, i) { return Math.random() * v / countSum })
-		const maxScore = nextWordScore.reduce((p, c) => { return Math.max(p, c) })
-		const topScoreWords = []
-		nextWordScore.forEach(function(v, i) {
-			if(maxScore === v) topScoreWords.push(nextWords[i])
-		})
-		let pushedWord
-		if(topScoreWords.length === 1) {
-			pushedWord = topScoreWords[0]
-		} else if(topScoreWords.length > 1) {
-			pushedWord = topScoreWords[Math.random() * topScoreWords.length | 0]
-		}
-		polymerize(chains, text + pushedWord.next_surface_form, pushedWord, count + 1)
+		resolve(return_text)
 	})
 }
