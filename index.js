@@ -72,25 +72,27 @@ async function update(tl_count) {
 			timeline_db.get("tweets").push(tweet).write()
 		}
 	})
-	console.log("timelineとれたよ")
-	console.log(await sortTimelineJSON())
-	console.log("現在 " + timeline_db.getState().tweets.length + "ツイート")
+	// console.log("timelineとれたよ")
+	await sortTimelineJSON()
 	await buildChainDB(timeline_db.getState().tweets)
 }
 
 async function postGeneratedTweet() {
 	const generatedText = await makeTweet()
 	await postStatus(generatedText)
-	console.log(generatedText)
+	// console.log(generatedText)
 }
 
+console.log("現在 " + timeline_db.getState().tweets.length + "ツイート")
 update(200)
 setInterval(() => {
 	update(100)
-}, 500000)
+}, 600000)
 
-postGeneratedTweet()
-setInterval(postGeneratedTweet, 1800000)
+setTimeout(function() {
+	postGeneratedTweet()
+	setInterval(postGeneratedTweet, 1200000)
+}, 300000)
 
 
 function compare(a, b, opt) {
@@ -171,7 +173,7 @@ function buildChainDB(data) {
 		await awaitForEach(data, function(v, i) {
 			if(lastAnalyzedID !== null && compare(lastAnalyzedID, v.id_str, 1)) return
 			if(v.isRetweet) return
-			console.log(data.length + "ツイート中 " + (i + 1) + "番目を解析中...")
+			// console.log(data.length + "ツイート中 " + (i + 1) + "番目を解析中...")
 			return new Promise(function(resolve, reject) {
 				kuromoji.builder({ dicPath: "./node_modules/kuromoji/dict" }).build(function(err, tokenizer) {
 					const path = tokenizer.tokenize(v.text)
@@ -237,7 +239,7 @@ function awaitForEach(array, cb, i) {
 }
 
 function makeTweet() {
-	console.log("ついーとつくるよ")
+	// console.log("ついーとつくるよ")
 	return new Promise(async function(resolve, reject) {
 		const chains = markov_chain_db.getState().chains
 		let text = ""
@@ -245,7 +247,6 @@ function makeTweet() {
 		let isSuit = false
 		initialWord = chains[Math.random() * chains.length | 0]
 		text = await polymerize(chains, initialWord)
-		console.log(text)
 		resolve(text)
 	})
 }
