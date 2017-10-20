@@ -14,9 +14,9 @@
     "forever": "^0.15.3"
   },
   "scripts": {
-    "start": "forever start ./index.js",
-    "stop": "forever stop ./index.js",
-    "flist": "forever list",
+    "start": "sudo forever start ./index.js",
+    "stop": "sudo forever stop ./index.js",
+    "flist": "sudo forever list",
     "rmlog": "yes | rm ~/.forever/*.log"
   }
 }
