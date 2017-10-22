@@ -36,7 +36,7 @@ const accessTokenSecret = "ANwAEnbcyYaeIDzBGXGrllDML7DCw6xFJswSm1KavN9Nr"
 // 	}
 // )
 
-const debug_mode = true
+const debug_mode = process.argv[2] !== undefined
 let debug_msg = null
 
 const tweetForm = {
@@ -196,7 +196,7 @@ function buildChainDB(data) {
 		await awaitForEach(data, function(v, i) {
 			if(lastAnalyzedID !== null && compare(lastAnalyzedID, v.id_str, 1)) return
 			if(v.isRetweet) return
-			console.log(data.length + "ツイート中 " + (i + 1) + "番目を解析中...")
+			if(debug_mode) console.log(data.length + "ツイート中 " + (i + 1) + "番目を解析中...")
 			return new Promise(function(resolve, reject) {
 				kuromoji.builder({ dicPath: "./node_modules/kuromoji/dict" }).build(function(err, tokenizer) {
 					const inputText = extractText(v)
