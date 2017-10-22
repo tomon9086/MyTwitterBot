@@ -36,6 +36,9 @@ const accessTokenSecret = "ANwAEnbcyYaeIDzBGXGrllDML7DCw6xFJswSm1KavN9Nr"
 // 	}
 // )
 
+const debug_mode = true
+let debug_msg = null
+
 const tweetForm = {
 	created_at: "Thu Jan 01 00:00:00 +0000 1970",
 	id: null,
@@ -55,17 +58,18 @@ async function update(tl_count) {
 	})
 	const lastTweet = tweets.length !== 0 ? tweets[indexofMaxId] : tweetForm
 	statuses.slice().reverse().forEach(async function(v, i) {
-		if(v.id > lastTweet.id) {
+		if(compare(v.id_str, lastTweet.id_str)) {
 			const tweet = {}
 			tweet.isRetweet = false
-			for(key in tweetForm) {
+			for(let key in tweetForm) {
 				tweet[key] = v[key]
 			}
+			// console.log(tweet)
 			if(v.in_reply_to_status_id_str !== null) {
 				let reply_to_status
 				tweet.reply_to_status = {}
 				if(tweet.in_reply_to_status_id_str !== null) reply_to_status = await getStatusById(tweet.in_reply_to_status_id_str)
-				for(key in tweetForm) {
+				for(let key in tweetForm) {
 					tweet.reply_to_status[key] = reply_to_status[key]
 				}
 			}
@@ -73,32 +77,37 @@ async function update(tl_count) {
 			timeline_db.get("tweets").push(tweet).write()
 		}
 	})
-	// console.log("timelineとれたよ")
-	await sortTimelineJSON()
+	if(debug_mode) console.log("timelineとれたよ")
+	debug_msg = await sortTimelineJSON()
+	if(debug_mode) console.log(debug_msg)
 	await buildChainDB(timeline_db.getState().tweets)
 }
 
 async function initialize() {
-	await checkTimelineDB()
+	debug_msg = await checkTimelineDB()
+	if(debug_mode) console.log(debug_msg)
+	if(debug_mode) console.log("updateよぶよ")
 	update(200)
 }
 
 function checkTimelineDB() {
-	// console.log("timeline.jsonのチェックするよ")
-	return new Promise(function(resolve, reject) {
-		timeline_db.get("tweets").forEach(async function(v, i, arr) {
+	if(debug_mode) console.log("timeline.jsonのチェックするよ")
+	return new Promise(async function(resolve, reject) {
+		// console.log(timeline_db.getState().tweets)
+		await awaitForEach(timeline_db.getState().tweets, async function(v, i, arr) {
 			let changed = false
+			// console.log(v.entities)
 			for(let key in tweetForm) {
 				let status = null
 				if(v[key] === undefined && status === null) status = await getStatusById(v.id_str)
 				if(v[key] === undefined) {
 					if(status[key] !== undefined) changed = true
-					v[key] = status[key]
+					arr[i][key] = status[key]
 				}
 			}
-			// if(changed) console.log(arr.length + "ツイート中 " + (i + 1) + "番目を変更")
+			if(changed) console.log(arr.length + "ツイート中 " + (i + 1) + "番目を変更")
 		})
-		timeline_db.write()
+		// timeline_db.write()
 		resolve("チェックかんりょ〜")
 	})
 }
@@ -106,7 +115,7 @@ function checkTimelineDB() {
 async function postGeneratedTweet() {
 	const generatedText = await makeTweet()
 	await postStatus(generatedText)
-	// console.log(generatedText)
+		if(debug_mode) console.log(new Date().toString() + " : " + generatedText)
 }
 
 function compare(a, b, opt) {
@@ -187,7 +196,7 @@ function buildChainDB(data) {
 		await awaitForEach(data, function(v, i) {
 			if(lastAnalyzedID !== null && compare(lastAnalyzedID, v.id_str, 1)) return
 			if(v.isRetweet) return
-			// console.log(data.length + "ツイート中 " + (i + 1) + "番目を解析中...")
+			console.log(data.length + "ツイート中 " + (i + 1) + "番目を解析中...")
 			return new Promise(function(resolve, reject) {
 				kuromoji.builder({ dicPath: "./node_modules/kuromoji/dict" }).build(function(err, tokenizer) {
 					const inputText = extractText(v)
@@ -244,34 +253,31 @@ function buildChainDB(data) {
 function extractText(tweetObj) {
 	let return_text = tweetObj.text
 	if(tweetObj.isRetweet) return_text = return_text.slice(3)
-	// if(tweetObj.media.length === 0 && tweetObj.urls.length === 0) return return_text
-	if(tweetObj.media.length !== 0) {
-		tweetObj.media.forEach(function(v, i) {
+	// if(tweetObj.entities.media.length === 0 && tweetObj.entities.urls.length === 0) return return_text
+	if(tweetObj.entities.media !== undefined) {
+		tweetObj.entities.media.forEach(function(v, i) {
 			return_text = return_text.replace(" " + v.url, "")
 		})
 	}
-	if(tweetObj.urls.length !== 0) {
-		tweetObj.urls.forEach(function(v, i) {
+	if(tweetObj.entities.urls !== undefined) {
+		tweetObj.entities.urls.forEach(function(v, i) {
 			return_text = return_text.replace(" " + v.url, "")
 		})
 	}
 	return return_text
 }
 
-function awaitForEach(array, cb, i) {
+function awaitForEach(array, cb) {
 	return new Promise(async function(resolve, reject) {
-		if(i === undefined) i = 0
-		await cb(array[i], i, array)
-		if(i + 1 >= array.length) {
-			resolve()
-			return
+		for(let i = 0; i < array.length; i++) {
+			await cb(array[i], i, array)
 		}
-		awaitForEach(array, cb, i + 1)
+		resolve()
 	})
 }
 
 function makeTweet() {
-	// console.log("ついーとつくるよ")
+	if(debug_mode) console.log("ついーとつくるよ")
 	return new Promise(async function(resolve, reject) {
 		const chains = markov_chain_db.getState().chains
 		let text = ""
@@ -331,9 +337,11 @@ function polymerize(chains, word) {
 
 console.log("現在 " + timeline_db.getState().tweets.length + "ツイート")
 
-if(process.argv[2] === undefined) console.error("argument is required.\n\tstart or build")
-if(process.argv[2] === "build") initialize()
-if(process.argv[2] === "start") {
+// if(process.argv[2] === undefined) console.error("argument is required.\n\tstart or build")
+// if(process.argv[2] === "build") initialize()
+// if(process.argv[2] === "start")
+initialize()
+setTimeout(function() {
 	setInterval(() => {
 		update(100)
 	}, 600000)
@@ -342,4 +350,4 @@ if(process.argv[2] === "start") {
 		postGeneratedTweet()
 		setInterval(postGeneratedTweet, 1200000)
 	}, 300000)
-}
+}, 300000)
