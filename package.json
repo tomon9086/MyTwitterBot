@@ -14,8 +14,8 @@
     "forever": "^0.15.3"
   },
   "scripts": {
-    "build": "node ./index.js build",
-    "start": "sudo forever start ./index.js start",
+    "debug": "node ./index.js debugmode",
+    "start": "sudo forever start ./index.js",
     "stop": "sudo forever stop ./index.js",
     "flist": "sudo forever list",
     "rmlog": "yes | rm ~/.forever/*.log"
