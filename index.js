@@ -11,6 +11,15 @@ const markov_chain_db = low(chains_adapter)
 markov_chain_db.defaults({ lastAnalyzedID: null, chains: [] }).write()
 
 const token = require("./token.js")
+/*
+<token.js>
+	module.exports = {
+		consumerKey: "*************************",
+		consumerSecret: "**************************************************",
+		accessToken: "**************************************************",
+		accessTokenSecret: "*********************************************"
+	}
+*/
 
 const oauth = new OAuth.OAuth(
 	"https://api.twitter.com/oauth/request_token",
