@@ -5,3 +5,4 @@ chains.json
 yarn.lock
 nohup.out
 references
+token.js

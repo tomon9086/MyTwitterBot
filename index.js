@@ -10,18 +10,20 @@ const chains_adapter = new FileSync("chains.json")
 const markov_chain_db = low(chains_adapter)
 markov_chain_db.defaults({ lastAnalyzedID: null, chains: [] }).write()
 
+const token = require("./token.js")
+
 const oauth = new OAuth.OAuth(
 	"https://api.twitter.com/oauth/request_token",
 	"https://api.twitter.com/oauth/access_token",
-	"3mRFhFrXDgQiJGm1Q5tUhPdgP",	// Consumer Key
-	"XSRzYh3IZbI17KINVwqUaJ65OYumLNj21qgE78bE0c38DGTNE2",	// Consumer Secret
+	token.consumerKey,
+	token.consumerSecret,
 	"1.0A",
 	null,
 	"HMAC-SHA1"
 )
 
-const accessToken = "847374164470095872-AjtzxNKNpOhjShssEAfPFrJtjvyOCkV"
-const accessTokenSecret = "ANwAEnbcyYaeIDzBGXGrllDML7DCw6xFJswSm1KavN9Nr"
+const accessToken = token.accessToken
+const accessTokenSecret = token.accessTokenSecret
 
 
 // oauth.get(
