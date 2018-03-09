@@ -131,6 +131,8 @@ async function postGeneratedTweet() {
 
 function compare(a, b, opt) {
 	if(isNaN(Number(a)) || isNaN(Number(a))) return NaN
+	a = !a ? "0" : a
+	b = !b ? "0" : b
 	if(opt === undefined) opt = 0
 	let a_larger_than_b = Number(a.slice(0, 9)) - Number(b.slice(0, 9)) === 0 ? Number(a.slice(9, a.length)) - Number(b.slice(9, b.length)) + opt > 0 ? true : false : Number(a.slice(0, 9)) - Number(b.slice(0, 9)) + opt > 0 ? true : false
 	return a_larger_than_b
