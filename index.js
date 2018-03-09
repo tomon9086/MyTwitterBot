@@ -98,7 +98,7 @@ async function initialize() {
 	debug_msg = await checkTimelineDB()
 	if(debug_mode) console.log(debug_msg)
 	if(debug_mode) console.log("updateよぶよ")
-	update(200)
+	await update(200)
 }
 
 function checkTimelineDB() {
@@ -345,20 +345,25 @@ function polymerize(chains, word) {
 	})
 }
 
+function wait(ms) {
+	return new Promise((resolve, reject) => {
+		setTimeout(() => {
+			resolve()
+		}, ms)
+	})
+}
 
 console.log("現在 " + timeline_db.getState().tweets.length + "ツイート")
 
 // if(process.argv[2] === undefined) console.error("argument is required.\n\tstart or build")
 // if(process.argv[2] === "build") initialize()
 // if(process.argv[2] === "start")
-initialize()
-setTimeout(function() {
-	setInterval(() => {
-		update(100)
-	}, 600000)
-
-	setTimeout(function() {
-		postGeneratedTweet()
-		setInterval(postGeneratedTweet, 1200000)
-	}, 300000)
-}, 300000)
+async function main() {
+	await initialize()
+	await postGeneratedTweet()
+	setInterval(async () => {
+		await update()
+		await postGeneratedTweet()
+	}, 900000)
+}
+main()
