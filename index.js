@@ -8,7 +8,7 @@ const timeline_db = low(tl_adapter)
 timeline_db.defaults({ tweets: [] }).write()
 const chains_adapter = new FileSync("chains.json")
 const markov_chain_db = low(chains_adapter)
-markov_chain_db.defaults({ lastAnalyzedID: null, chains: [] }).write()
+markov_chain_db.defaults({ lastAnalyzedID: null, tweets: 0, analyzedCount: 0, chains: [] }).write()
 
 const token = require("./token.js")
 /*
@@ -297,6 +297,7 @@ function buildChainDB(data) {
 
 					resolve()
 				})
+				markov_chain_db.set("analyzedCount", i + 1).write()
 				markov_chain_db.set("lastAnalyzedID", v.id_str).write()
 			})
 		})
@@ -422,7 +423,8 @@ function wait(ms) {
 	})
 }
 
-console.log("現在 " + timeline_db.getState().tweets.length + "ツイート")
+if(debug_mode) console.log("現在 " + timeline_db.getState().tweets.length + "ツイート")
+markov_chain_db.set("tweets", timeline_db.getState().tweets.length).write()
 
 // if(process.argv[2] === undefined) console.error("argument is required.\n\tstart or build")
 // if(process.argv[2] === "build") initialize()
