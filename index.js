@@ -156,7 +156,7 @@ function checkTimelineDB() {
 
 async function postGeneratedTweet() {
 	const generatedText = await makeTweet()
-	await postStatus(generatedText)
+	if(!debug_mode) await postStatus(generatedText)
 	if(debug_mode) console.log(new Date().toString() + " : " + generatedText)
 }
 
