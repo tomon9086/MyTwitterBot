@@ -60,6 +60,37 @@ const tweetForm = {
 	in_reply_to_user_id_str: null
 }
 
+const start_of_text = {
+	word_id: -100,				// 辞書内での単語ID
+	word_type: "KNOWN",			// 単語タイプ(辞書に登録されている単語ならKNOWN, 未知語ならUNKNOWN)
+	word_position: 1,			// 単語の開始位置
+	surface_form: "",			// 表層形
+	pos: "文頭",					// 品詞
+	pos_detail_1: "*",			// 品詞細分類1
+	pos_detail_2: "*",			// 品詞細分類2
+	pos_detail_3: "*",			// 品詞細分類3
+	conjugated_type: "*",		// 活用型
+	conjugated_form: "*",		// 活用形
+	basic_form: "",				// 基本形
+	reading: "",				// 読み
+	pronunciation: ""			// 発音
+}
+const end_of_text = {
+	word_id: -101,				// 辞書内での単語ID
+	word_type: "KNOWN",			// 単語タイプ(辞書に登録されている単語ならKNOWN, 未知語ならUNKNOWN)
+	word_position: -1,			// 単語の開始位置
+	surface_form: "",			// 表層形
+	pos: "文末",					// 品詞
+	pos_detail_1: "*",			// 品詞細分類1
+	pos_detail_2: "*",			// 品詞細分類2
+	pos_detail_3: "*",			// 品詞細分類3
+	conjugated_type: "*",		// 活用型
+	conjugated_form: "*",		// 活用形
+	basic_form: "",				// 基本形
+	reading: "",				// 読み
+	pronunciation: ""			// 発音
+}
+
 async function update(tl_count) {
 	const tweets = timeline_db.getState().tweets
 	const statuses = await getTimeline("4445069657", tl_count)
@@ -125,8 +156,8 @@ function checkTimelineDB() {
 
 async function postGeneratedTweet() {
 	const generatedText = await makeTweet()
-	await postStatus(generatedText)
-		if(debug_mode) console.log(new Date().toString() + " : " + generatedText)
+	// await postStatus(generatedText)
+	if(debug_mode) console.log(new Date().toString() + " : " + generatedText)
 }
 
 function compare(a, b, opt) {
@@ -203,38 +234,54 @@ function postStatus(mes) {
 	})
 }
 
+function buildChain(p, c, i, arr) {
+	let indexofWord = null
+	for(let j in markov_chain_db.getState().chains) {
+		if(p.word_id === markov_chain_db.getState().chains[j].word_id) {
+			indexofWord = j
+			break
+		}
+	}
+	if(indexofWord !== null) {
+		let indexofNextWord = null
+		for(let j in markov_chain_db.getState().chains[indexofWord].next_words) {
+			if(c.word_id === markov_chain_db.getState().chains[indexofWord].next_words[j].next_word_id) {
+				indexofNextWord = j
+				break
+			}
+		}
+		if(indexofNextWord !== null) {
+			markov_chain_db.getState().chains[indexofWord].next_words[indexofNextWord].count++
+			markov_chain_db.write()
+		} else {
+			const nextWord = {
+				next_word_id: c.word_id,
+				next_surface_form: c.surface_form,
+				next_pos: c.pos,
+				count: 1
+			}
+			markov_chain_db.getState().chains[indexofWord].next_words.push(nextWord)
+			markov_chain_db.write()
+		}
+	} else {
+		const newWord = {
+			word_id: p.word_id,
+			surface_form: p.surface_form,
+			pos: p.pos,
+			next_words: [{
+				next_word_id: c.word_id,
+				next_surface_form: c.surface_form,
+				next_pos: c.pos,
+				count: 1
+			}]
+		}
+		markov_chain_db.get("chains").push(newWord).write()
+	}
+	return c
+}
+
 function buildChainDB(data) {
 	const lastAnalyzedID = markov_chain_db.getState().lastAnalyzedID
-	const start_of_text = {
-		word_id: -100,				// 辞書内での単語ID
-		word_type: "KNOWN",			// 単語タイプ(辞書に登録されている単語ならKNOWN, 未知語ならUNKNOWN)
-		word_position: 1,			// 単語の開始位置
-		surface_form: "",			// 表層形
-		pos: "文頭",					// 品詞
-		pos_detail_1: "*",			// 品詞細分類1
-		pos_detail_2: "*",			// 品詞細分類2
-		pos_detail_3: "*",			// 品詞細分類3
-		conjugated_type: "*",		// 活用型
-		conjugated_form: "*",		// 活用形
-		basic_form: "",				// 基本形
-		reading: "",				// 読み
-		pronunciation: ""			// 発音
-	}
-	const end_of_text = {
-		word_id: -101,				// 辞書内での単語ID
-		word_type: "KNOWN",			// 単語タイプ(辞書に登録されている単語ならKNOWN, 未知語ならUNKNOWN)
-		word_position: -1,			// 単語の開始位置
-		surface_form: "",			// 表層形
-		pos: "文頭",					// 品詞
-		pos_detail_1: "*",			// 品詞細分類1
-		pos_detail_2: "*",			// 品詞細分類2
-		pos_detail_3: "*",			// 品詞細分類3
-		conjugated_type: "*",		// 活用型
-		conjugated_form: "*",		// 活用形
-		basic_form: "",				// 基本形
-		reading: "",				// 読み
-		pronunciation: ""			// 発音
-	}
 	return new Promise(async function(resolve, reject) {
 		await awaitForEach(data, function(v, i) {
 			if(lastAnalyzedID !== null && compare(lastAnalyzedID, v.id_str, 1)) return
@@ -245,60 +292,8 @@ function buildChainDB(data) {
 					const inputText = extractText(v)
 					const path = tokenizer.tokenize(inputText)
 					// console.log(path)
-					path.reduce(function(p, c, i, arr) {
-						let indexofWord = null
-						for(let j in markov_chain_db.getState().chains) {
-							if(p.word_id === markov_chain_db.getState().chains[j].word_id) {
-								indexofWord = j
-								break
-							}
-						}
-						if(indexofWord !== null) {
-							let indexofNextWord = null
-							for(let j in markov_chain_db.getState().chains[indexofWord].next_words) {
-								if(c.word_id === markov_chain_db.getState().chains[indexofWord].next_words[j].next_word_id) {
-									indexofNextWord = j
-									break
-								}
-							}
-							if(indexofNextWord !== null) {
-								markov_chain_db.getState().chains[indexofWord].next_words[indexofNextWord].count++
-								markov_chain_db.write()
-							} else {
-								const nextWord = {
-									next_word_id: c.word_id,
-									next_surface_form: c.surface_form,
-									next_pos: c.pos,
-									count: 1
-								}
-								markov_chain_db.getState().chains[indexofWord].next_words.push(nextWord)
-								markov_chain_db.write()
-							}
-						} else {
-							const newWord = {
-								word_id: p.word_id,
-								surface_form: p.surface_form,
-								pos: p.pos,
-								next_words: [{
-									next_word_id: c.word_id,
-									next_surface_form: c.surface_form,
-									next_pos: c.pos,
-									count: 1
-								}]
-							}
-							markov_chain_db.get("chains").push(newWord).write()
-						}
-						if(i === arr.length - 1) {
-							const lastWord = c
-							for(let j in markov_chain_db.getState().chains) {
-								if(lastWord.word_id === markov_chain_db.getState().chains[j].word_id) {
-									markov_chain_db.getState().chains[j].next_words[end_of_text.word_id].count++
-									markov_chain_db.write()
-								}
-							}
-						}
-						return c
-					}, start_of_text)
+					path.reduce(buildChain, start_of_text)
+					buildChain(path[path.length - 1], end_of_text, path.length, path)
 
 					resolve()
 				})
@@ -342,29 +337,33 @@ function makeTweet() {
 		let text = ""
 		let initialWord = null
 		let isSuit = false
-		initialWord = chains[Math.random() * chains.length | 0]
-		text = await polymerize(chains, initialWord)
+		text = await polymerize(chains)
 		resolve(text)
 	})
 }
 
 function polymerize(chains, word) {
-	let currWord = word
-	let return_text = word.surface_form
-	let count = 0
+	let currWord = word ? word : start_of_text
+	let return_text = currWord.surface_form
 	return new Promise(function(resolve, reject) {
-		while((Math.random() * (count / 2)) < 3) {
-			let indexofWord = chains.indexOf(currWord)
-			if(indexofWord === -1) {
-				chains.forEach(function(v, i) {
-					if(currWord.next_word_id === v.word_id) {
-						indexofWord = i
-						return
-					}
-				})
+		while(true) {
+			let indexofWord = null
+			for(let i in chains) {
+				if(chains[i].word_id === currWord.word_id) {
+					indexofWord = i
+					break
+				}
 			}
-			// console.log(indexofWord)
-			if(indexofWord === -1) {
+			if(!indexofWord) {
+				for(let i in chains) {
+					if(currWord.next_word_id === chains[i].word_id) {
+						indexofWord = i
+						break
+					}
+				}
+			}
+			console.log("indexofWord:", indexofWord)
+			if(!indexofWord) {
 				resolve(return_text)
 				return
 			}
@@ -385,9 +384,9 @@ function polymerize(chains, word) {
 			} else if(topScoreWords.length > 1) {
 				pushedWord = topScoreWords[Math.random() * topScoreWords.length | 0]
 			}
+			if(pushedWord.word_id === end_of_text.word_id) break
 			return_text += pushedWord.next_surface_form
 			currWord = pushedWord
-			count++
 		}
 		resolve(return_text)
 	})
