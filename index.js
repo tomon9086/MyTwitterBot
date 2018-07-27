@@ -205,6 +205,36 @@ function postStatus(mes) {
 
 function buildChainDB(data) {
 	const lastAnalyzedID = markov_chain_db.getState().lastAnalyzedID
+	const start_of_text = {
+		word_id: -100,				// 辞書内での単語ID
+		word_type: "KNOWN",			// 単語タイプ(辞書に登録されている単語ならKNOWN, 未知語ならUNKNOWN)
+		word_position: 1,			// 単語の開始位置
+		surface_form: "",			// 表層形
+		pos: "文頭",					// 品詞
+		pos_detail_1: "*",			// 品詞細分類1
+		pos_detail_2: "*",			// 品詞細分類2
+		pos_detail_3: "*",			// 品詞細分類3
+		conjugated_type: "*",		// 活用型
+		conjugated_form: "*",		// 活用形
+		basic_form: "",				// 基本形
+		reading: "",				// 読み
+		pronunciation: ""			// 発音
+	}
+	const end_of_text = {
+		word_id: -101,				// 辞書内での単語ID
+		word_type: "KNOWN",			// 単語タイプ(辞書に登録されている単語ならKNOWN, 未知語ならUNKNOWN)
+		word_position: -1,			// 単語の開始位置
+		surface_form: "",			// 表層形
+		pos: "文頭",					// 品詞
+		pos_detail_1: "*",			// 品詞細分類1
+		pos_detail_2: "*",			// 品詞細分類2
+		pos_detail_3: "*",			// 品詞細分類3
+		conjugated_type: "*",		// 活用型
+		conjugated_form: "*",		// 活用形
+		basic_form: "",				// 基本形
+		reading: "",				// 読み
+		pronunciation: ""			// 発音
+	}
 	return new Promise(async function(resolve, reject) {
 		await awaitForEach(data, function(v, i) {
 			if(lastAnalyzedID !== null && compare(lastAnalyzedID, v.id_str, 1)) return
@@ -215,16 +245,22 @@ function buildChainDB(data) {
 					const inputText = extractText(v)
 					const path = tokenizer.tokenize(inputText)
 					// console.log(path)
-					path.reduce(function(p, c) {
+					path.reduce(function(p, c, i, arr) {
 						let indexofWord = null
-						markov_chain_db.getState().chains.forEach(function(w, j) {
-							if(p.word_id === w.word_id) indexofWord = j
-						})
+						for(let j in markov_chain_db.getState().chains) {
+							if(p.word_id === markov_chain_db.getState().chains[j].word_id) {
+								indexofWord = j
+								break
+							}
+						}
 						if(indexofWord !== null) {
 							let indexofNextWord = null
-							markov_chain_db.getState().chains[indexofWord].next_words.forEach(function(w, j) {
-								if(c.word_id === w.next_word_id) indexofNextWord = j
-							})
+							for(let j in markov_chain_db.getState().chains[indexofWord].next_words) {
+								if(c.word_id === markov_chain_db.getState().chains[indexofWord].next_words[j].next_word_id) {
+									indexofNextWord = j
+									break
+								}
+							}
 							if(indexofNextWord !== null) {
 								markov_chain_db.getState().chains[indexofWord].next_words[indexofNextWord].count++
 								markov_chain_db.write()
@@ -252,8 +288,18 @@ function buildChainDB(data) {
 							}
 							markov_chain_db.get("chains").push(newWord).write()
 						}
+						if(i === arr.length - 1) {
+							const lastWord = c
+							for(let j in markov_chain_db.getState().chains) {
+								if(lastWord.word_id === markov_chain_db.getState().chains[j].word_id) {
+									markov_chain_db.getState().chains[j].next_words[end_of_text.word_id].count++
+									markov_chain_db.write()
+								}
+							}
+						}
 						return c
-					})
+					}, start_of_text)
+
 					resolve()
 				})
 				markov_chain_db.set("lastAnalyzedID", v.id_str).write()
