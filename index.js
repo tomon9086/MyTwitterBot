@@ -293,7 +293,7 @@ function buildChainDB(data) {
 					const path = tokenizer.tokenize(inputText)
 					// console.log(path)
 					path.reduce(buildChain, start_of_text)
-					buildChain(path[path.length - 1], end_of_text, path.length, path)
+					if(path.length !== 0) buildChain(path[path.length - 1], end_of_text, path.length, path)
 
 					resolve()
 				})
