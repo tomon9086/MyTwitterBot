@@ -304,6 +304,15 @@ function buildChainDB(data) {
 	})
 }
 
+function cutstr(str, start, end) {
+	if(!str || (!start && !end)) return str
+	start = start | 0
+	end = end | 0
+	let ret = str.slice(0, start)
+	if(end !== undefined && end < str.length) ret += str.slice(end, str.length)
+	return ret
+}
+
 function extractText(tweetObj) {
 	let return_text = tweetObj.text
 	if(tweetObj.isRetweet) return_text = return_text.slice(3)
@@ -317,6 +326,14 @@ function extractText(tweetObj) {
 		tweetObj.entities.urls.forEach(function(v, i) {
 			return_text = return_text.replace(" " + v.url, "")
 		})
+	}
+	if(tweetObj.entities.user_mentions.length !== 0) {
+		for(let i in tweetObj.entities.user_mentions) {
+			// const v = tweetObj.entities.user_mentions[i].indices
+			// return_text = cutstr(return_text, v[0], v[1])
+			return_text = return_text.replace("@" + tweetObj.entities.user_mentions[i].screen_name + " ", "")
+		}
+		// console.log(return_text)
 	}
 	return return_text
 }
@@ -362,7 +379,7 @@ function polymerize(chains, word) {
 					}
 				}
 			}
-			console.log("indexofWord:", indexofWord)
+			console.log("indexofWord:", indexofWord, "currWord:", currWord.word_id)
 			if(!indexofWord) {
 				resolve(return_text)
 				return
@@ -384,9 +401,14 @@ function polymerize(chains, word) {
 			} else if(topScoreWords.length > 1) {
 				pushedWord = topScoreWords[Math.random() * topScoreWords.length | 0]
 			}
-			if(pushedWord.word_id === end_of_text.word_id) break
+			if(pushedWord.next_word_id === end_of_text.word_id) break
 			return_text += pushedWord.next_surface_form
-			currWord = pushedWord
+			currWord = {
+				word_id: pushedWord.next_word_id,
+				surface_form: pushedWord.next_surface_form,
+				pos: pushedWord.next_pos,
+				next_words: []
+			}
 		}
 		resolve(return_text)
 	})
