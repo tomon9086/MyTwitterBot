@@ -379,7 +379,7 @@ function polymerize(chains, word) {
 					}
 				}
 			}
-			console.log("indexofWord:", indexofWord, "currWord:", currWord.word_id)
+			if(debug_mode) console.log("indexofWord:", indexofWord, "currWord:", currWord.word_id)
 			if(!indexofWord) {
 				resolve(return_text)
 				return
