@@ -99,6 +99,8 @@ async function update(tl_count) {
 		if(compare(v.id_str, tweets[indexofMaxId].id_str)) indexofMaxId = i
 	})
 	const lastTweet = tweets.length !== 0 ? tweets[indexofMaxId] : tweetForm
+	// console.log("lastTweet", lastTweet.id_str)
+	// console.log(statuses.map(v => v.id_str))
 	statuses.slice().reverse().forEach(async function(v, i) {
 		if(compare(v.id_str, lastTweet.id_str)) {
 			const tweet = {}
@@ -161,10 +163,11 @@ async function postGeneratedTweet() {
 }
 
 function compare(a, b, opt) {
-	if(isNaN(Number(a)) || isNaN(Number(a))) return NaN
+	if(isNaN(Number(a)) || isNaN(Number(b))) return NaN
 	a = !a ? "0" : a
 	b = !b ? "0" : b
 	if(opt === undefined) opt = 0
+	if(a.length !== b.length) return a.length > b.length
 	let a_larger_than_b = Number(a.slice(0, 9)) - Number(b.slice(0, 9)) === 0 ? Number(a.slice(9, a.length)) - Number(b.slice(9, b.length)) + opt > 0 ? true : false : Number(a.slice(0, 9)) - Number(b.slice(0, 9)) + opt > 0 ? true : false
 	return a_larger_than_b
 }
