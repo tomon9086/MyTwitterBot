@@ -252,6 +252,7 @@ function buildChain(p, c, i, arr) {
 		}
 		if(indexofNextWord !== null) {
 			markov_chain_db.getState().chains[indexofWord].next_words[indexofNextWord].count++
+			// if(markov_chain_db.getState().chains[indexofWord].next_words[indexofNextWord].next_surface_form === "peing") console.log(markov_chain_db.getState().chains[indexofWord].next_words[indexofNextWord])
 			markov_chain_db.write()
 		} else {
 			const nextWord = {
@@ -391,7 +392,7 @@ function polymerize(chains, word) {
 			const nextWords = chains[indexofWord].next_words
 			// const nextWords = chains[indexofWord].next_words.filter(v => v.next_word_type === "KNOWN")
 			// const nextWordCounts = nextWords.map(function(v, i) { return v.count })
-			const nextWordCounts = nextWords.map(function(v, i) { return v.count * (v.next_word_type === "KNOWN" ? 2 : 1) })
+			const nextWordCounts = nextWords.map(function(v, i) { return v.count / (v.next_word_type === "KNOWN" ? 1 : v.count) })
 			const countSum = nextWordCounts.reduce(function(p, c) {
 				return p + c
 			})
