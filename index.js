@@ -256,6 +256,7 @@ function buildChain(p, c, i, arr) {
 		} else {
 			const nextWord = {
 				next_word_id: c.word_id,
+				next_word_type: c.word_type,
 				next_surface_form: c.surface_form,
 				next_pos: c.pos,
 				count: 1
@@ -266,10 +267,12 @@ function buildChain(p, c, i, arr) {
 	} else {
 		const newWord = {
 			word_id: p.word_id,
+			word_type: p.word_type,
 			surface_form: p.surface_form,
 			pos: p.pos,
 			next_words: [{
 				next_word_id: c.word_id,
+				next_word_type: c.word_type,
 				next_surface_form: c.surface_form,
 				next_pos: c.pos,
 				count: 1
@@ -386,7 +389,9 @@ function polymerize(chains, word) {
 				return
 			}
 			const nextWords = chains[indexofWord].next_words
-			const nextWordCounts = nextWords.map(function(v, i) { return v.count })
+			// const nextWords = chains[indexofWord].next_words.filter(v => v.next_word_type === "KNOWN")
+			// const nextWordCounts = nextWords.map(function(v, i) { return v.count })
+			const nextWordCounts = nextWords.map(function(v, i) { return v.count * (v.next_word_type === "KNOWN" ? 2 : 1) })
 			const countSum = nextWordCounts.reduce(function(p, c) {
 				return p + c
 			})
@@ -406,6 +411,7 @@ function polymerize(chains, word) {
 			return_text += pushedWord.next_surface_form
 			currWord = {
 				word_id: pushedWord.next_word_id,
+				word_type: pushedWord.next_word_type,
 				surface_form: pushedWord.next_surface_form,
 				pos: pushedWord.next_pos,
 				next_words: []
