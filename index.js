@@ -388,10 +388,7 @@ function polymerize(chains, word) {
 				}
 			}
 			if(debug_mode) console.log("indexofWord:", indexofWord, "currWord:", currWord.word_id)
-			if(!indexofWord) {
-				resolve(return_text)
-				return
-			}
+			if(indexofWord === null) break
 			const nextWords = chains[indexofWord].next_words
 			// const nextWords = chains[indexofWord].next_words.filter(v => v.next_word_type === "KNOWN")
 			// const nextWordCounts = nextWords.map(function(v, i) { return v.count })
